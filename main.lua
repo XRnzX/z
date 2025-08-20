@@ -7,7 +7,6 @@ local LocalPlayer = Players.LocalPlayer
 -- Rayfield GUI
 local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/XRnzX/z/refs/heads/main/rayfield.lua"))()
 
-
 -- Window
 local Window = Rayfield:CreateWindow({
 	Name = "SSER Hub",
@@ -26,10 +25,13 @@ local Window = Rayfield:CreateWindow({
 	}
 })
 
--- Main Tab
-local MainTab = Window:CreateTab("🎮 Main", 4483362458)
+-- Tabs
+local MainTab = Window:CreateTab("Main", 11570895459)
+local PlayersTab = Window:CreateTab("Player", 7992557358)
 
 -- Variables
+local selectedPlayer = nil
+local viewingPlayer = false
 local walkSpeedValue = 16
 local bringTargetActive = false
 local aimLockEnabled = false
@@ -39,6 +41,7 @@ local instantReloadActive = false
 local noclipEnabled = false
 local targetInfo = {Player=nil, Username=""}
 local lastShoot = 0
+local originalCanCollide = {}
 
 -- WalkSpeed Slider
 MainTab:CreateSlider({
@@ -64,24 +67,28 @@ local function applyWalkSpeed()
 		humanoid.WalkSpeed = walkSpeedValue
 	end
 end
-
 LocalPlayer.CharacterAdded:Connect(function(char)
 	char:WaitForChild("Humanoid")
 	applyWalkSpeed()
 end)
 
--- Search Target
+-- Search Target Input
 MainTab:CreateInput({
 	Name = "Search Target Player",
-	PlaceholderText = "Exact username...",
+	PlaceholderText = "Start typing username or display name...",
 	RemoveTextAfterFocusLost = false,
 	Callback = function(text)
-		local player = Players:FindFirstChild(text)
-		if player then
-			targetInfo.Player = player
-			targetInfo.Username = player.Name
-			Rayfield:Notify({Title="Target Selected", Content=player.Name, Duration=3})
-		else
+		targetInfo.Player = nil
+		text = text:lower()
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr.Name:lower():sub(1,#text) == text or plr.DisplayName:lower():sub(1,#text) == text then
+				targetInfo.Player = plr
+				targetInfo.Username = plr.Name
+				Rayfield:Notify({Title="Target Selected", Content=plr.Name.." ("..plr.DisplayName..")", Duration=3})
+				break
+			end
+		end
+		if not targetInfo.Player then
 			Rayfield:Notify({Title="Error", Content="Player not found!", Duration=3})
 		end
 	end
@@ -91,8 +98,33 @@ MainTab:CreateInput({
 MainTab:CreateToggle({Name = "Bring Target", CurrentValue=false, Callback=function(state) bringTargetActive = state end})
 MainTab:CreateToggle({Name = "Aim Lock", CurrentValue=false, Callback=function(state) aimLockEnabled = state end})
 MainTab:CreateToggle({Name = "AutoKill / Spam Gun", CurrentValue=false, Callback=function(state) autoKillActive = state end})
-MainTab:CreateToggle({Name = "Instant Reload", CurrentValue=false, Callback=function(state) instantReloadActive = state end})
-MainTab:CreateToggle({Name = "Noclip", CurrentValue=false, Callback=function(state) noclipEnabled = state end})
+MainTab:CreateToggle({
+	Name = "Instant Reload",
+	CurrentValue=false,
+	Callback=function(state) instantReloadActive = state end
+})
+MainTab:CreateToggle({
+	Name = "Noclip",
+	CurrentValue=false,
+	Callback=function(state)
+		noclipEnabled = state
+		local char = LocalPlayer.Character
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					if state then
+						originalCanCollide[part] = part.CanCollide
+						part.CanCollide = false
+					else
+						if originalCanCollide[part] ~= nil then
+							part.CanCollide = originalCanCollide[part]
+						end
+					end
+				end
+			end
+		end
+	end
+})
 
 -- Functions
 local function getFacingPlayer()
@@ -130,14 +162,44 @@ local function safeActivateTool(tool)
 	end
 end
 
-local function instantReload(tool)
-	if instantReloadActive and tool and tool:FindFirstChild("Ammo") then
-		pcall(function()
-			local maxAmmo = tool.Ammo.MaxValue or 30
-			tool.Ammo.Value = maxAmmo
-		end)
+-- Players Tab Input
+PlayersTab:CreateInput({
+	Name = "Search Player",
+	PlaceholderText = "Start typing username or display name...",
+	RemoveTextAfterFocusLost = false,
+	Callback = function(text)
+		selectedPlayer = nil
+		text = text:lower()
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr.Name:lower():sub(1,#text) == text or plr.DisplayName:lower():sub(1,#text) == text then
+				selectedPlayer = plr
+				Rayfield:Notify({Title="Player Found", Content=plr.Name.." ("..plr.DisplayName..")", Duration=3})
+				break
+			end
+		end
+		if not selectedPlayer then
+			Rayfield:Notify({Title="Error", Content="Player not found!", Duration=3})
+		end
 	end
-end
+})
+
+-- View Buttons
+PlayersTab:CreateButton({Name="View Player", Callback=function()
+	if selectedPlayer and selectedPlayer.Character then
+		viewingPlayer = true
+		Rayfield:Notify({Title="Viewing Player", Content="Now watching "..selectedPlayer.Name, Duration=3})
+	else
+		Rayfield:Notify({Title="Error", Content="Select a valid player first!", Duration=3})
+	end
+end})
+PlayersTab:CreateButton({Name="Stop Viewing", Callback=function()
+	if viewingPlayer then
+		viewingPlayer = false
+		local cam = Workspace.CurrentCamera
+		cam.CameraType = Enum.CameraType.Custom
+		Rayfield:Notify({Title="Stopped Viewing", Content="Camera returned to normal", Duration=3})
+	end
+end})
 
 -- Main Loop
 RunService.RenderStepped:Connect(function()
@@ -148,16 +210,25 @@ RunService.RenderStepped:Connect(function()
 	local tool = char:FindFirstChildOfClass("Tool")
 	local cam = Workspace.CurrentCamera
 
-	-- WalkSpeed Fix
-	if humanoid and humanoid.WalkSpeed ~= walkSpeedValue then
-		humanoid.WalkSpeed = walkSpeedValue
+	-- WalkSpeed always sync
+	if humanoid then
+		pcall(function() humanoid.WalkSpeed = walkSpeedValue end)
 	end
 
-	-- Noclip
-	if noclipEnabled and hrp then
+	-- Noclip toggle
+	if hrp then
 		for _, part in ipairs(char:GetDescendants()) do
-			if part:IsA("BasePart") and part.CanCollide then
-				part.CanCollide = false
+			if part:IsA("BasePart") then
+				if noclipEnabled then
+					if originalCanCollide[part] == nil then
+						originalCanCollide[part] = part.CanCollide
+					end
+					part.CanCollide = false
+				else
+					if originalCanCollide[part] ~= nil then
+						part.CanCollide = originalCanCollide[part]
+					end
+				end
 			end
 		end
 	end
@@ -170,14 +241,14 @@ RunService.RenderStepped:Connect(function()
 			if cam then
 				cam.CFrame = CFrame.new(cam.CFrame.Position, targetHRP.Position + Vector3.new(0,1.5,0))
 			end
-			if tool and tick() - lastShoot > 0.1 then
+			if tool and tick() - lastShoot > 0.05 then
 				lastShoot = tick()
 				safeActivateTool(tool)
 			end
 		end
 	end
 
-	-- Smart Aim Lock
+	-- Aim Lock
 	if aimLockEnabled and hrp and tool and cam then
 		local targetHRP = getFacingPlayer()
 		if targetHRP then
@@ -185,21 +256,40 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 
-	-- AutoKill / Spam Gun
+	-- AutoKill
 	if autoKillActive and hrp and tool and cam then
-		local nearest = getFacingPlayer() or nil
+		local nearest = getFacingPlayer()
 		if nearest then
 			hrp.CFrame = CFrame.new(nearest.Position + Vector3.new(0,20,0))
 			cam.CFrame = CFrame.new(cam.CFrame.Position, nearest.Position + Vector3.new(0,1.5,0))
-			if tick() - lastShoot > 0.15 then
+			if tick() - lastShoot > 0.05 then
 				lastShoot = tick()
 				safeActivateTool(tool)
 			end
 		end
 	end
 
-	-- Instant Reload
-	if tool then
-		instantReload(tool)
+	-- Instant Reload / Auto Fire
+	if instantReloadActive and tool then
+		pcall(function()
+			-- Refill ammo instantly if ammo exists
+			if tool:FindFirstChild("Ammo") then
+				tool.Ammo.Value = tool.Ammo.MaxValue or 30
+			end
+			-- Continuously fire weapon
+			safeActivateTool(tool)
+		end)
+	end
+
+	-- Live Player View (no DHC anymore)
+	if viewingPlayer and selectedPlayer and selectedPlayer.Character and cam then
+		local targetHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+		if targetHRP then
+			local backOffset = -6
+			local heightOffset = 3
+			local camPos = targetHRP.Position + Vector3.new(0, heightOffset, backOffset)
+			cam.CameraType = Enum.CameraType.Scriptable
+			cam.CFrame = CFrame.new(camPos, targetHRP.Position + Vector3.new(0,2,0))
+		end
 	end
 end)
