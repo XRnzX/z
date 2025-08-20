@@ -1,4 +1,5 @@
-SSER | Exploit Utilities
+-- SSER | Roblox Utilities (Safe Loadstring Version)
+-- Make sure this is a LocalScript
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -6,8 +7,30 @@ local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
-local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/XRnzX/z/refs/heads/main/rayfield.lua"))()
+-- ========================
+-- Wait for player & character
+-- ========================
+repeat wait() until LocalPlayer and LocalPlayer.Parent
 
+if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+    LocalPlayer.CharacterAdded:Wait()
+end
+
+-- ========================
+-- Safe loadstring Rayfield
+-- ========================
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+end)
+
+if not success then
+    warn("Failed to load Rayfield! Check your internet or URL.")
+    return
+end
+
+-- ========================
+-- Error Handling
+-- ========================
 local ErrorCodes = {
     [1001] = "Humanoid missing (character not fully loaded yet).",
     [1002] = "Character missing (wait for respawn).",
@@ -48,23 +71,9 @@ local function NotifyError(code, context)
     end
 end
 
-local Window = Rayfield:CreateWindow({
-    Name = "SSER Hub",
-    LoadingTitle = "SSER Script Hub",
-    LoadingSubtitle = "by saint.devv : VERSION 🔒 v1.4",
-    ConfigurationSaving = {Enabled = true, FileName = "SSER Hub"},
-    Discord = {Enabled = true, Invite = "discord.gg/rblxcondo", RememberJoins = true},
-    KeySystem = true,
-    KeySettings = {
-        Title = "SSER Script Hub",
-        Subtitle = "🔒 v1.4",
-        Note = "Please join discord.gg/WpwZAB7M9n for key!",
-        FileName = "Key",
-        SaveKey = true,
-        Key = {"PointyVG"}
-    }
-})
-
+-- ========================
+-- Core Hub Variables
+-- ========================
 local walkSpeedValue = 16
 local targetInfo = {Player=nil, Username=""}
 local autoKillActive = false
@@ -129,6 +138,27 @@ local function instantReload(tool)
     end
 end
 
+-- ========================
+-- Create Window & Tabs
+-- ========================
+local Window = Rayfield:CreateWindow({
+    Name = "SSER Hub",
+    LoadingTitle = "SSER Script Hub",
+    LoadingSubtitle = "by saint.devv : VERSION 🔒 v1.4",
+    ConfigurationSaving = {Enabled = true, FileName = "SSER Hub"},
+    Discord = {Enabled = true, Invite = "discord.gg/rblxcondo", RememberJoins = true},
+    KeySystem = true,
+    KeySettings = {
+        Title = "SSER Script Hub",
+        Subtitle = "🔒 v1.4",
+        Note = "Please join discord.gg/WpwZAB7M9n for key!",
+        FileName = "Key",
+        SaveKey = true,
+        Key = {"PointyVG"}
+    }
+})
+
+-- Main Tab
 local MainTab = Window:CreateTab("Main",11570895459)
 MainTab:CreateSlider({
     Name = "WalkSpeed",
@@ -161,6 +191,7 @@ MainTab:CreateToggle({
     end
 })
 
+-- Character Added Listener
 LocalPlayer.CharacterAdded:Connect(function(char)
     local humanoid = char:WaitForChild("Humanoid",5) or getHumanoid(char)
     if humanoid then
@@ -177,6 +208,7 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     end
 end)
 
+-- Player Tab
 local PlayerTab = Window:CreateTab("Player",7992557358)
 PlayerTab:CreateInput({
     Name = "Quick Search Target",
@@ -207,6 +239,7 @@ PlayerTab:CreateToggle({Name="AutoKill / Spam Gun", CurrentValue=false, Callback
 PlayerTab:CreateToggle({Name="Aim Lock", CurrentValue=false, Callback=function(state) aimLockEnabled=state end})
 PlayerTab:CreateToggle({Name="Instant Reload", CurrentValue=false, Callback=function(state) instantReloadActive=state end})
 
+-- Places Tab
 local PlacesTab = Window:CreateTab("Places",279461710)
 local Locations = {
     ["Safe Zone"] = Vector3.new(-501.2,48.8,-211.1),
@@ -226,6 +259,9 @@ for name,pos in pairs(Locations) do
     })
 end
 
+-- ========================
+-- RunService Loop
+-- ========================
 RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
     if not char then return end
