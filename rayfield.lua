@@ -60,7 +60,7 @@ end
 local requestsDisabled = true --getgenv and getgenv().DISABLE_RAYFIELD_REQUESTS
 local InterfaceBuild = '3K3W'
 local Release = "Build 1.68"
-local RayfieldFolder = "Rayfield"
+local RayfieldFolder = "SSR"
 local ConfigurationFolder = RayfieldFolder.."/Configurations"
 local ConfigurationExtension = ".rfld"
 local settingsTable = {
@@ -1494,7 +1494,7 @@ local function createSettings(window)
 		return
 	end
 
-	local newTab = window:CreateTab('Rayfield Settings', 0, true)
+	local newTab = window:CreateTab('SSR Settings', 0, true)
 
 	if TabList['Rayfield Settings'] then
 		TabList['Rayfield Settings'].LayoutOrder = 1000
@@ -1613,11 +1613,11 @@ function RayfieldLibrary:CreateWindow(Settings)
 	end
 
 	LoadingFrame.Version.TextTransparency = 1
-	LoadingFrame.Title.Text = Settings.LoadingTitle or "SSR Script Hub"
+	LoadingFrame.Title.Text = Settings.LoadingTitle or "SSR Hub"
 	LoadingFrame.Subtitle.Text = Settings.LoadingSubtitle or "Interface Suite"
 
 	if Settings.LoadingTitle ~= "SSR Interface Suite" then
-		LoadingFrame.Version.Text = "SSR HUB UI"
+		LoadingFrame.Version.Text = "this fucking hub was made by saint.devv"
 	end
 
 	if Settings.Icon and Settings.Icon ~= 0 and Topbar:FindFirstChild('Icon') then
