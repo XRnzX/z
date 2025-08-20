@@ -4,8 +4,8 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
+-- Rayfield GUI
 local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/XRnzX/z/refs/heads/main/rayfield.lua"))()
-
 
 -- Window
 local Window = Rayfield:CreateWindow({
@@ -42,30 +42,37 @@ local lastShoot = 0
 -- WalkSpeed Slider
 MainTab:CreateSlider({
 	Name = "WalkSpeed",
-	Range = {16, 200},
+	Range = {16, 200}, -- safe up to 200
 	Increment = 1,
 	Suffix = "Speed",
 	CurrentValue = walkSpeedValue,
 	Callback = function(value)
 		walkSpeedValue = value
-		local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
-			humanoid.WalkSpeed = value
-		end
+		applyWalkSpeed()
 	end
 })
 
--- Apply WalkSpeed on spawn
+-- Apply WalkSpeed and fix camera
 local function applyWalkSpeed()
 	local char = LocalPlayer.Character
-	local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+	if not char then return end
+	local humanoid = char:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.WalkSpeed = walkSpeedValue
 	end
+
+	-- Fix camera to follow Humanoid properly
+	local cam = Workspace.CurrentCamera
+	if cam and humanoid then
+		cam.CameraSubject = humanoid
+		cam.CameraType = Enum.CameraType.Custom
+	end
 end
 
+-- Re-apply on spawn
 LocalPlayer.CharacterAdded:Connect(function(char)
 	char:WaitForChild("Humanoid")
+	char:WaitForChild("HumanoidRootPart")
 	applyWalkSpeed()
 end)
 
@@ -147,7 +154,7 @@ RunService.RenderStepped:Connect(function()
 	local tool = char:FindFirstChildOfClass("Tool")
 	local cam = Workspace.CurrentCamera
 
-	-- WalkSpeed Fix
+	-- WalkSpeed enforcement
 	if humanoid and humanoid.WalkSpeed ~= walkSpeedValue then
 		humanoid.WalkSpeed = walkSpeedValue
 	end
@@ -161,14 +168,11 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 
-	-- Bring Target
+	-- Bring Target (camera follows automatically now)
 	if bringTargetActive and targetInfo.Player and targetInfo.Player.Character and hrp then
 		local targetHRP = targetInfo.Player.Character:FindFirstChild("HumanoidRootPart")
 		if targetHRP then
 			hrp.CFrame = CFrame.new(targetHRP.Position + Vector3.new(0,20,0))
-			if cam then
-				cam.CFrame = CFrame.new(cam.CFrame.Position, targetHRP.Position + Vector3.new(0,1.5,0))
-			end
 			if tool and tick() - lastShoot > 0.1 then
 				lastShoot = tick()
 				safeActivateTool(tool)
@@ -189,7 +193,6 @@ RunService.RenderStepped:Connect(function()
 		local nearest = getFacingPlayer() or nil
 		if nearest then
 			hrp.CFrame = CFrame.new(nearest.Position + Vector3.new(0,20,0))
-			cam.CFrame = CFrame.new(cam.CFrame.Position, nearest.Position + Vector3.new(0,1.5,0))
 			if tick() - lastShoot > 0.15 then
 				lastShoot = tick()
 				safeActivateTool(tool)
