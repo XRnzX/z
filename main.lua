@@ -7,13 +7,14 @@ local LocalPlayer = Players.LocalPlayer
 -- Rayfield GUI
 local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/XRnzX/z/refs/heads/main/rayfield.lua"))()
 
+
 -- Window
 local Window = Rayfield:CreateWindow({
 	Name = "SSER Hub",
 	LoadingTitle = "SSER Script Hub",
 	LoadingSubtitle = "by saint.devv : VERSION 🔒 v1.3",
 	ConfigurationSaving = {Enabled = true, FileName = "SSER Hub"},
-	Discord = {Enabled = true, Invite = "https://discord.gg/WpwZAB7M9n", RememberJoins = true},
+	Discord = {Enabled = true, Invite = "discord.gg/rblxcondo", RememberJoins = true},
 	KeySystem = true,
 	KeySettings = {
 		Title = "SSER Script Hub",
@@ -42,37 +43,30 @@ local lastShoot = 0
 -- WalkSpeed Slider
 MainTab:CreateSlider({
 	Name = "WalkSpeed",
-	Range = {16, 200}, -- safe up to 200
+	Range = {16, 200},
 	Increment = 1,
 	Suffix = "Speed",
 	CurrentValue = walkSpeedValue,
 	Callback = function(value)
 		walkSpeedValue = value
-		applyWalkSpeed()
+		local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.WalkSpeed = value
+		end
 	end
 })
 
--- Apply WalkSpeed and fix camera
+-- Apply WalkSpeed on spawn
 local function applyWalkSpeed()
 	local char = LocalPlayer.Character
-	if not char then return end
-	local humanoid = char:FindFirstChildOfClass("Humanoid")
+	local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.WalkSpeed = walkSpeedValue
 	end
-
-	-- Fix camera to follow Humanoid properly
-	local cam = Workspace.CurrentCamera
-	if cam and humanoid then
-		cam.CameraSubject = humanoid
-		cam.CameraType = Enum.CameraType.Custom
-	end
 end
 
--- Re-apply on spawn
 LocalPlayer.CharacterAdded:Connect(function(char)
 	char:WaitForChild("Humanoid")
-	char:WaitForChild("HumanoidRootPart")
 	applyWalkSpeed()
 end)
 
@@ -154,7 +148,7 @@ RunService.RenderStepped:Connect(function()
 	local tool = char:FindFirstChildOfClass("Tool")
 	local cam = Workspace.CurrentCamera
 
-	-- WalkSpeed enforcement
+	-- WalkSpeed Fix
 	if humanoid and humanoid.WalkSpeed ~= walkSpeedValue then
 		humanoid.WalkSpeed = walkSpeedValue
 	end
@@ -168,11 +162,14 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 
-	-- Bring Target (camera follows automatically now)
+	-- Bring Target
 	if bringTargetActive and targetInfo.Player and targetInfo.Player.Character and hrp then
 		local targetHRP = targetInfo.Player.Character:FindFirstChild("HumanoidRootPart")
 		if targetHRP then
 			hrp.CFrame = CFrame.new(targetHRP.Position + Vector3.new(0,20,0))
+			if cam then
+				cam.CFrame = CFrame.new(cam.CFrame.Position, targetHRP.Position + Vector3.new(0,1.5,0))
+			end
 			if tool and tick() - lastShoot > 0.1 then
 				lastShoot = tick()
 				safeActivateTool(tool)
@@ -193,6 +190,7 @@ RunService.RenderStepped:Connect(function()
 		local nearest = getFacingPlayer() or nil
 		if nearest then
 			hrp.CFrame = CFrame.new(nearest.Position + Vector3.new(0,20,0))
+			cam.CFrame = CFrame.new(cam.CFrame.Position, nearest.Position + Vector3.new(0,1.5,0))
 			if tick() - lastShoot > 0.15 then
 				lastShoot = tick()
 				safeActivateTool(tool)
