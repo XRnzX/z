@@ -13,7 +13,7 @@ local Window = Rayfield:CreateWindow({
 	LoadingTitle = "SSER Script Hub",
 	LoadingSubtitle = "by saint.devv : VERSION 🔒 v1.3",
 	ConfigurationSaving = {Enabled = true, FileName = "SSER Hub"},
-	Discord = {Enabled = true, Invite = "discord.gg/WpwZAB7M9n", RememberJoins = true},
+	Discord = {Enabled = true, Invite = "https://discord.gg/WpwZAB7M9n", RememberJoins = true},
 	KeySystem = true,
 	KeySettings = {
 		Title = "SSER Script Hub",
