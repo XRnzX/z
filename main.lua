@@ -20,7 +20,7 @@ end
 -- Safe loadstring Rayfield
 -- ========================
 local success, Rayfield = pcall(function()
-    return loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/XRnzX/z/refs/heads/main/rayfield.lua"))()
 end)
 
 if not success then
